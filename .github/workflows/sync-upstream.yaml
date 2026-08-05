@@ -37,22 +37,22 @@ jobs:
           # Remove the editable install line (project installed via .pth file)
           sed -i '/^-e \./d' requirements.txt
 
-      - name: Download packages for all architectures
+      - name: Download packages
         run: |
-          mkdir -p deps
+          rm -rf deps && mkdir -p deps
 
-          # Download all packages (prefer wheels, fall back to sdists)
+          # Download all runtime packages (prefer wheels from PyPI)
           pip download -r requirements.txt --dest deps/ --no-deps --prefer-binary
 
-          # Build wheels from any remaining sdists so deps/ is wheels-only
-          for sdist in deps/*.tar.gz; do
-            [ -f "$sdist" ] || continue
-            echo "Building wheel from sdist: $(basename $sdist)"
-            pip wheel --no-deps --wheel-dir deps/ "$sdist"
-            rm "$sdist"
-          done
+          # Download build backends needed for sdist-only packages
+          pip download --dest deps/ --no-deps --prefer-binary \
+            hatchling editables pathspec trove-classifiers hatch-vcs \
+            hatch-fancy-pypi-readme flit_core wheel setuptools \
+            poetry-core poetry-dynamic-versioning dunamai tomlkit \
+            setuptools-rust semantic-version setuptools-scm \
+            calver vcs-versioning tomli pbr pytest-runner
 
-          echo "Downloaded $(ls deps/ | wc -l) package files (all wheels)"
+          echo "Downloaded $(ls deps/ | wc -l) package files"
 
       - name: Check for changes
         id: check
