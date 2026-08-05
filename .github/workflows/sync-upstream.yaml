@@ -50,7 +50,14 @@ jobs:
             hatch-fancy-pypi-readme flit_core wheel setuptools \
             poetry-core poetry-dynamic-versioning dunamai tomlkit \
             setuptools-rust semantic-version setuptools-scm \
-            calver vcs-versioning tomli pbr pytest-runner
+            calver vcs-versioning tomli pbr pytest-runner \
+            maturin
+
+          # maturin has platform-specific wheels -- download for all target arches
+          pip download --dest deps/ --no-deps --only-binary :all: maturin \
+            --platform manylinux2014_aarch64 2>/dev/null || true
+          pip download --dest deps/ --no-deps --only-binary :all: maturin \
+            --platform manylinux2014_s390x 2>/dev/null || true
 
           echo "Downloaded $(ls deps/ | wc -l) package files"
 
