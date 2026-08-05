@@ -14,14 +14,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
           lfs: true
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
 
-      - name: Update submodule to latest upstream commit
-        run: git submodule update --remote upstream/openshift-virtualization-tests
+      - name: Init and update submodule
+        run: |
+          git submodule init
+          git submodule update
+          git submodule update --remote upstream/openshift-virtualization-tests
 
       - name: Export requirements.txt from uv.lock
         working-directory: upstream/openshift-virtualization-tests
