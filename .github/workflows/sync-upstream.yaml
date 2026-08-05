@@ -34,9 +34,7 @@ jobs:
           # Remove Windows-only packages (no Linux distributions)
           sed -i '/^colorama==/,/^[^ ]/{ /^colorama==/d; /^    /d; /^$/d; }' requirements.txt
           sed -i '/^pywin32==/,/^[^ ]/{ /^pywin32==/d; /^    /d; /^$/d; }' requirements.txt
-          # Remove ruff (Rust linter, broken Cargo.lock in sdist, not needed at runtime)
-          sed -i '/^ruff==/,/^[^ ]/{ /^ruff==/d; /^    /d; /^$/d; }' requirements.txt
-          # Remove the editable install line
+          # Remove the editable install line (project installed via .pth file)
           sed -i '/^-e \./d' requirements.txt
 
       - name: Download packages for all architectures
