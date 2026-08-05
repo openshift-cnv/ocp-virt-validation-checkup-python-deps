@@ -41,32 +41,18 @@ jobs:
         run: |
           mkdir -p deps
 
-          # Download sdists + wheels for the runner platform (x86_64)
+          # Download all packages (prefer wheels, fall back to sdists)
           pip download -r requirements.txt --dest deps/ --no-deps --prefer-binary
 
-          # Download platform-specific wheels for aarch64
-          pip download -r requirements.txt --dest deps/ --no-deps \
-            --only-binary :all: --platform manylinux2014_aarch64 \
-            --python-version 314 --implementation cp --abi cp314 2>/dev/null || true
+          # Build wheels from any remaining sdists so deps/ is wheels-only
+          for sdist in deps/*.tar.gz; do
+            [ -f "$sdist" ] || continue
+            echo "Building wheel from sdist: $(basename $sdist)"
+            pip wheel --no-deps --wheel-dir deps/ "$sdist"
+            rm "$sdist"
+          done
 
-          # Download platform-specific wheels for s390x
-          pip download -r requirements.txt --dest deps/ --no-deps \
-            --only-binary :all: --platform manylinux2014_s390x \
-            --python-version 314 --implementation cp --abi cp314 2>/dev/null || true
-
-          # Also get musllinux wheels (RHEL uses glibc but some packages only ship musl)
-          pip download -r requirements.txt --dest deps/ --no-deps \
-            --only-binary :all: --platform musllinux_1_2_x86_64 \
-            --python-version 314 --implementation cp --abi cp314 2>/dev/null || true
-          pip download -r requirements.txt --dest deps/ --no-deps \
-            --only-binary :all: --platform musllinux_1_2_aarch64 \
-            --python-version 314 --implementation cp --abi cp314 2>/dev/null || true
-          pip download -r requirements.txt --dest deps/ --no-deps \
-            --only-binary :all: --platform musllinux_1_2_s390x \
-            --python-version 314 --implementation cp --abi cp314 2>/dev/null || true
-
-          # Deduplicate (pip may download the same file twice)
-          echo "Downloaded $(ls deps/ | wc -l) package files"
+          echo "Downloaded $(ls deps/ | wc -l) package files (all wheels)"
 
       - name: Check for changes
         id: check
