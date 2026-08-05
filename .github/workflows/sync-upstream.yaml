@@ -44,12 +44,13 @@ jobs:
         run: |
           rm -rf deps && mkdir -p deps
 
-          # Use uv with Python 3.14 to download all packages as wheels
-          uv pip download -r requirements.txt --dest deps/ \
-            --python-version 3.14 --no-deps --prefer-binary
+          # Use Python 3.14's pip to download packages (gets correct cp314 wheels)
+          PYTHON314=$(uv python find 3.14)
+          $PYTHON314 -m pip download -r requirements.txt --dest deps/ \
+            --no-deps --prefer-binary
 
           # Download build backends (needed for sdist-only packages)
-          uv pip download --dest deps/ --no-deps --prefer-binary \
+          $PYTHON314 -m pip download --dest deps/ --no-deps --prefer-binary \
             hatchling editables pathspec trove-classifiers hatch-vcs \
             hatch-fancy-pypi-readme flit_core wheel setuptools \
             poetry-core poetry-dynamic-versioning dunamai tomlkit \
