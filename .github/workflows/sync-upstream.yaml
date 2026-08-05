@@ -19,6 +19,9 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
 
+      - name: Install Python 3.14
+        run: uv python install 3.14
+
       - name: Init and update submodule
         run: |
           git submodule init
@@ -41,35 +44,19 @@ jobs:
         run: |
           rm -rf deps && mkdir -p deps
 
-          # Strip hashes from requirements.txt for cross-version download
-          sed 's/ \\$//' requirements.txt | grep -v '^\s*--hash' | grep -v '^\s*#' | grep -v '^\s*$' > requirements-nohash.txt
+          # Use uv with Python 3.14 to download all packages as wheels
+          uv pip download -r requirements.txt --dest deps/ \
+            --python-version 3.14 --no-deps --prefer-binary
 
-          # Download Python 3.14 manylinux wheels for all target architectures
-          for platform in manylinux2014_x86_64 manylinux2014_aarch64 manylinux2014_s390x; do
-            pip download -r requirements-nohash.txt --dest deps/ --no-deps \
-              --only-binary :all: --python-version 314 --implementation cp \
-              --abi cp314 --abi abi3 --abi none \
-              --platform ${platform} --platform linux 2>/dev/null || true
-          done
-
-          # Download sdists for packages that don't have wheels
-          pip download -r requirements-nohash.txt --dest deps/ --no-deps --no-binary :all: 2>/dev/null || true
-
-          # Download build backends (pure Python wheels, no version constraint)
-          pip download --dest deps/ --no-deps --prefer-binary \
+          # Download build backends (needed for sdist-only packages)
+          uv pip download --dest deps/ --no-deps --prefer-binary \
             hatchling editables pathspec trove-classifiers hatch-vcs \
             hatch-fancy-pypi-readme flit_core wheel setuptools \
             poetry-core poetry-dynamic-versioning dunamai tomlkit \
             setuptools-rust semantic-version setuptools-scm \
-            calver vcs-versioning tomli pbr pytest-runner
+            calver vcs-versioning tomli pbr pytest-runner \
+            maturin
 
-          # maturin has platform-specific wheels
-          for platform in manylinux2010_x86_64.musllinux_1_1_x86_64 manylinux2014_aarch64.musllinux_1_1_aarch64 manylinux2014_s390x; do
-            pip download --dest deps/ --no-deps --only-binary :all: maturin \
-              --platform ${platform} 2>/dev/null || true
-          done
-
-          rm -f requirements-nohash.txt
           echo "Downloaded $(ls deps/ | wc -l) package files"
 
       - name: Check for changes
