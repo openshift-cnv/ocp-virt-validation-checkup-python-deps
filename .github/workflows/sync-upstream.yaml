@@ -15,14 +15,64 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
+          lfs: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
 
       - name: Update submodule to latest upstream commit
         run: git submodule update --remote upstream/openshift-virtualization-tests
 
+      - name: Export requirements.txt from uv.lock
+        working-directory: upstream/openshift-virtualization-tests
+        run: uv export --format requirements.txt --frozen --no-dev --output-file ../../requirements.txt
+
+      - name: Filter out problematic packages
+        run: |
+          # Remove Windows-only packages (no Linux distributions)
+          sed -i '/^colorama==/,/^[^ ]/{ /^colorama==/d; /^    /d; /^$/d; }' requirements.txt
+          sed -i '/^pywin32==/,/^[^ ]/{ /^pywin32==/d; /^    /d; /^$/d; }' requirements.txt
+          # Remove ruff (Rust linter, broken Cargo.lock in sdist, not needed at runtime)
+          sed -i '/^ruff==/,/^[^ ]/{ /^ruff==/d; /^    /d; /^$/d; }' requirements.txt
+          # Remove the editable install line
+          sed -i '/^-e \./d' requirements.txt
+
+      - name: Download packages for all architectures
+        run: |
+          mkdir -p deps
+
+          # Download sdists + wheels for the runner platform (x86_64)
+          pip download -r requirements.txt --dest deps/ --no-deps --prefer-binary
+
+          # Download platform-specific wheels for aarch64
+          pip download -r requirements.txt --dest deps/ --no-deps \
+            --only-binary :all: --platform manylinux2014_aarch64 \
+            --python-version 314 --implementation cp --abi cp314 2>/dev/null || true
+
+          # Download platform-specific wheels for s390x
+          pip download -r requirements.txt --dest deps/ --no-deps \
+            --only-binary :all: --platform manylinux2014_s390x \
+            --python-version 314 --implementation cp --abi cp314 2>/dev/null || true
+
+          # Also get musllinux wheels (RHEL uses glibc but some packages only ship musl)
+          pip download -r requirements.txt --dest deps/ --no-deps \
+            --only-binary :all: --platform musllinux_1_2_x86_64 \
+            --python-version 314 --implementation cp --abi cp314 2>/dev/null || true
+          pip download -r requirements.txt --dest deps/ --no-deps \
+            --only-binary :all: --platform musllinux_1_2_aarch64 \
+            --python-version 314 --implementation cp --abi cp314 2>/dev/null || true
+          pip download -r requirements.txt --dest deps/ --no-deps \
+            --only-binary :all: --platform musllinux_1_2_s390x \
+            --python-version 314 --implementation cp --abi cp314 2>/dev/null || true
+
+          # Deduplicate (pip may download the same file twice)
+          echo "Downloaded $(ls deps/ | wc -l) package files"
+
       - name: Check for changes
         id: check
         run: |
-          if git diff --quiet; then
+          git add -A
+          if git diff --cached --quiet; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "changed=true" >> $GITHUB_OUTPUT
@@ -31,8 +81,9 @@ jobs:
       - name: Commit and push
         if: steps.check.outputs.changed == 'true'
         run: |
+          UPSTREAM_SHA=$(git -C upstream/openshift-virtualization-tests rev-parse --short HEAD)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Bump openshift-virtualization-tests to $(git -C upstream/openshift-virtualization-tests rev-parse --short HEAD)"
+          git commit -m "Sync deps from openshift-virtualization-tests ${UPSTREAM_SHA}"
           git push
