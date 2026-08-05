@@ -1,4 +1,4 @@
 [submodule "upstream/openshift-virtualization-tests"]
 	path = upstream/openshift-virtualization-tests
 	url = https://github.com/RedHatQE/openshift-virtualization-tests.git
-	branch = cnv-4.22
+	branch = main
