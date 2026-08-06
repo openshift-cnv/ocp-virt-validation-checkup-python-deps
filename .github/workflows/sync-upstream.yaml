@@ -53,12 +53,15 @@ jobs:
           grep -E '^[a-zA-Z]' requirements.txt | sed 's/ .*//' > reqs-plain.txt
           echo "Packages for cross-platform download: $(wc -l < reqs-plain.txt)"
 
-          # Download aarch64 and s390x wheels for packages with native extensions
+          # Download aarch64 and s390x wheels to a temp dir (pip skips if same version exists in dest)
           for platform in manylinux2014_aarch64 manylinux_2_28_aarch64 manylinux_2_34_aarch64 \
                           manylinux2014_s390x manylinux_2_28_s390x manylinux_2_34_s390x; do
             echo "Downloading for platform: $platform"
-            $PYTHON314 -m pip download -r reqs-plain.txt --dest deps/ \
+            tmpdir=$(mktemp -d)
+            $PYTHON314 -m pip download -r reqs-plain.txt --dest "$tmpdir" \
               --no-deps --only-binary :all: --platform $platform || true
+            cp -n "$tmpdir"/*.whl deps/ 2>/dev/null || true
+            rm -rf "$tmpdir"
           done
           rm -f reqs-plain.txt
 
