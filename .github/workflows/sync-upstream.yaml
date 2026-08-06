@@ -98,6 +98,32 @@ jobs:
 
           echo "Downloaded $(ls deps/ | wc -l) package files"
 
+      - name: Set up QEMU for s390x
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: s390x
+
+      - name: Build s390x wheels for packages without PyPI wheels
+        run: |
+          # Packages that need s390x wheels built (no PyPI wheels available)
+          S390X_BUILD="bcrypt cryptography psutil pynacl markupsafe sqlalchemy"
+          REQS=""
+          for pkg in $S390X_BUILD; do
+            ver=$(grep -oE "^${pkg}==[0-9.]+" requirements.txt | head -1)
+            [ -n "$ver" ] && REQS="$REQS $ver"
+          done
+          echo "Building s390x wheels for: $REQS"
+
+          docker run --rm --platform linux/s390x \
+            -v "$PWD/deps:/deps" \
+            -v "$PWD/requirements.txt:/requirements.txt" \
+            python:3.14 bash -c "
+              pip install --upgrade pip wheel setuptools setuptools-rust maturin &&
+              pip wheel --no-deps --wheel-dir /deps $REQS
+            "
+
+          echo "After s390x build: $(ls deps/ | wc -l) package files"
+
       - name: Check for changes
         id: check
         run: |
