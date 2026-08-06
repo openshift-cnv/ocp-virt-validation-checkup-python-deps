@@ -50,13 +50,15 @@ jobs:
             --no-deps --prefer-binary
 
           # Extract plain package==version list for cross-platform downloads
-          grep -oP '^[a-zA-Z0-9_.-]+==[0-9.]+' requirements.txt > reqs-plain.txt
+          awk -F'[= \\]' '/^[a-zA-Z].*==/{print $1"=="$3}' requirements.txt > reqs-plain.txt
+          echo "Packages for cross-platform download: $(wc -l < reqs-plain.txt)"
 
           # Download aarch64 and s390x wheels for packages with native extensions
           for platform in manylinux2014_aarch64 manylinux_2_28_aarch64 manylinux_2_34_aarch64 \
                           manylinux2014_s390x manylinux_2_28_s390x manylinux_2_34_s390x; do
+            echo "Downloading for platform: $platform"
             $PYTHON314 -m pip download -r reqs-plain.txt --dest deps/ \
-              --no-deps --only-binary :all: --platform $platform 2>/dev/null || true
+              --no-deps --only-binary :all: --platform $platform || true
           done
           rm -f reqs-plain.txt
 
