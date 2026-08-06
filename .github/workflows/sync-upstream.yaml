@@ -87,14 +87,12 @@ jobs:
             setuptools-rust semantic-version setuptools-scm \
             calver vcs-versioning tomli pbr pytest-runner
 
-          # maturin needs platform-specific wheels for all arches (x86_64 + aarch64 + s390x)
-          for platform in manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64 \
-                          manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64 \
-                          manylinux_2_17_s390x.manylinux2014_s390x; do
+          # maturin needs platform-specific wheels for all arches
+          for platform in manylinux2010_x86_64 manylinux2014_aarch64 manylinux2014_s390x; do
             tmpdir=$(mktemp -d)
             $PYTHON314 -m pip download --dest "$tmpdir" --no-deps --only-binary :all: \
-              maturin --platform $platform 2>/dev/null || true
-            cp -n "$tmpdir"/*.whl deps/ 2>/dev/null || true
+              maturin --platform $platform || true
+            ls "$tmpdir"/*.whl 2>/dev/null && cp "$tmpdir"/*.whl deps/
             rm -rf "$tmpdir"
           done
 
