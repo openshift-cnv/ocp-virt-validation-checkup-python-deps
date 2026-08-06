@@ -53,16 +53,20 @@ jobs:
           grep -E '^[a-zA-Z]' requirements.txt | sed 's/ .*//' > reqs-plain.txt
           echo "Packages for cross-platform download: $(wc -l < reqs-plain.txt)"
 
-          # Download aarch64/s390x wheels for native-extension packages
-          NATIVE_PKGS=$(cat reqs-plain.txt | tr '\n' ' ')
+          # Download aarch64/s390x wheels only for packages with native extensions
+          NATIVE_PKGS="bcrypt cffi charset-normalizer cryptography greenlet markupsafe psutil pydantic-core pynacl rpds-py ruff sqlalchemy websockets pyyaml"
           for arch in aarch64 s390x; do
-            echo "Downloading $arch wheels..."
+            echo "Downloading $arch wheels for native packages..."
             tmpdir=$(mktemp -d)
-            for platform in manylinux_2_17_${arch} manylinux_2_28_${arch} manylinux_2_34_${arch}; do
-              $PYTHON314 -m pip download \
-                --dest "$tmpdir" --no-deps --only-binary :all: \
-                --platform $platform --python-version 3.14 --abi cp314 --abi abi3 --abi none \
-                $NATIVE_PKGS 2>/dev/null || true
+            for pkg in $NATIVE_PKGS; do
+              ver=$(grep "^${pkg}==" reqs-plain.txt | head -1)
+              [ -z "$ver" ] && continue
+              for platform in manylinux_2_17_${arch} manylinux_2_28_${arch} manylinux_2_34_${arch}; do
+                $PYTHON314 -m pip download \
+                  --dest "$tmpdir" --no-deps --only-binary :all: \
+                  --platform $platform --python-version 3.14 --abi cp314 --abi abi3 --abi none \
+                  "$ver" 2>/dev/null && break
+              done
             done
             echo "  Downloaded for $arch: $(ls $tmpdir/*.whl 2>/dev/null | wc -l) wheels"
             cp -n "$tmpdir"/*.whl deps/ 2>/dev/null || true
