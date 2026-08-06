@@ -30,13 +30,16 @@ jobs:
         working-directory: upstream/openshift-virtualization-tests
         run: uv export --format requirements.txt --frozen --no-dev --output-file ../../requirements.txt
 
-      - name: Filter out problematic packages
+      - name: Filter and clean requirements.txt
         run: |
           # Remove Windows-only packages (no Linux distributions)
           sed -i '/^colorama==/,/^[^ ]/{ /^colorama==/d; /^    /d; /^$/d; }' requirements.txt
           sed -i '/^pywin32==/,/^[^ ]/{ /^pywin32==/d; /^    /d; /^$/d; }' requirements.txt
           # Remove the editable install line (project installed via .pth file)
           sed -i '/^-e \./d' requirements.txt
+          # Strip hashes (QEMU-built wheels have different hashes than PyPI)
+          grep -E '^[a-zA-Z]' requirements.txt | sed 's/ .*//' > requirements-clean.txt
+          mv requirements-clean.txt requirements.txt
 
       - name: Download packages
         run: |
