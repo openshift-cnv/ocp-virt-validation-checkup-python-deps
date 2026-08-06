@@ -1,8 +1,6 @@
 name: Sync upstream dependencies
 
 on:
-  schedule:
-    - cron: '*/30 * * * *'
   workflow_dispatch: {}
 
 jobs:
