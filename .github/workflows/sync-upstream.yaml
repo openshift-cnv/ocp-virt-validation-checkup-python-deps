@@ -43,20 +43,33 @@ jobs:
       - name: Download packages
         run: |
           rm -rf deps && mkdir -p deps
-
-          # Use Python 3.14's pip to download packages (gets correct cp314 wheels)
           PYTHON314=$(uv python find 3.14)
+
+          # Download packages for x86_64 (runner native, gets best wheels + sdist fallback)
           $PYTHON314 -m pip download -r requirements.txt --dest deps/ \
             --no-deps --prefer-binary
 
-          # Download build backends (needed for sdist-only packages)
+          # Download aarch64 and s390x wheels for packages with native extensions
+          for platform in manylinux2014_aarch64 manylinux_2_28_aarch64 manylinux_2_34_aarch64 \
+                          manylinux2014_s390x manylinux_2_28_s390x manylinux_2_34_s390x; do
+            $PYTHON314 -m pip download -r requirements.txt --dest deps/ \
+              --no-deps --only-binary :all: --platform $platform 2>/dev/null || true
+          done
+
+          # Download build backends (pure Python, needed for sdist-only packages)
           $PYTHON314 -m pip download --dest deps/ --no-deps --prefer-binary \
             hatchling editables pathspec trove-classifiers hatch-vcs \
             hatch-fancy-pypi-readme flit_core wheel setuptools \
             poetry-core poetry-dynamic-versioning dunamai tomlkit \
             setuptools-rust semantic-version setuptools-scm \
-            calver vcs-versioning tomli pbr pytest-runner \
-            maturin
+            calver vcs-versioning tomli pbr pytest-runner
+
+          # maturin needs platform-specific wheels for all arches
+          for platform in manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64 \
+                          manylinux_2_17_s390x.manylinux2014_s390x; do
+            $PYTHON314 -m pip download --dest deps/ --no-deps --only-binary :all: \
+              maturin --platform $platform 2>/dev/null || true
+          done
 
           echo "Downloaded $(ls deps/ | wc -l) package files"
 
