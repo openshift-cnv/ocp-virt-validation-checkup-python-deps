@@ -53,8 +53,13 @@ jobs:
           grep -E '^[a-zA-Z]' requirements.txt | sed 's/ .*//' > reqs-plain.txt
           echo "Packages for cross-platform download: $(wc -l < reqs-plain.txt)"
 
-          # Download aarch64/s390x wheels only for packages with native extensions
+          # Download sdists for native packages (fallback for arches without wheels)
           NATIVE_PKGS="bcrypt cffi charset-normalizer cryptography greenlet markupsafe psutil pydantic-core pynacl rpds-py ruff sqlalchemy websockets pyyaml"
+          for pkg in $NATIVE_PKGS; do
+            ver=$(grep "^${pkg}==" reqs-plain.txt | head -1)
+            [ -z "$ver" ] && continue
+            $PYTHON314 -m pip download --dest deps/ --no-deps --no-binary :all: "$ver" 2>/dev/null || true
+          done
           for arch in aarch64 s390x; do
             echo "Downloading $arch wheels for native packages..."
             tmpdir=$(mktemp -d)
