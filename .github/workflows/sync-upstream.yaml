@@ -50,7 +50,7 @@ jobs:
             --no-deps --prefer-binary
 
           # Extract plain package==version list for cross-platform downloads
-          awk -F'[= \\]' '/^[a-zA-Z].*==/{print $1"=="$3}' requirements.txt > reqs-plain.txt
+          grep -E '^[a-zA-Z]' requirements.txt | sed 's/ .*//' > reqs-plain.txt
           echo "Packages for cross-platform download: $(wc -l < reqs-plain.txt)"
 
           # Download aarch64 and s390x wheels for packages with native extensions
