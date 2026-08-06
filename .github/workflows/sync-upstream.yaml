@@ -49,16 +49,16 @@ jobs:
           $PYTHON314 -m pip download -r requirements.txt --dest deps/ \
             --no-deps --prefer-binary
 
-          # Strip hashes for cross-platform downloads (hashes block --platform)
-          sed 's/ \\$//' requirements.txt | grep -v '^\s*--hash' | grep -v '^\s*#' | grep -v '^\s*$' > reqs-nohash.txt
+          # Extract plain package==version list for cross-platform downloads
+          grep -oP '^[a-zA-Z0-9_.-]+==[0-9.]+' requirements.txt > reqs-plain.txt
 
           # Download aarch64 and s390x wheels for packages with native extensions
           for platform in manylinux2014_aarch64 manylinux_2_28_aarch64 manylinux_2_34_aarch64 \
                           manylinux2014_s390x manylinux_2_28_s390x manylinux_2_34_s390x; do
-            $PYTHON314 -m pip download -r reqs-nohash.txt --dest deps/ \
+            $PYTHON314 -m pip download -r reqs-plain.txt --dest deps/ \
               --no-deps --only-binary :all: --platform $platform 2>/dev/null || true
           done
-          rm -f reqs-nohash.txt
+          rm -f reqs-plain.txt
 
           # Download build backends (pure Python, needed for sdist-only packages)
           $PYTHON314 -m pip download --dest deps/ --no-deps --prefer-binary \
