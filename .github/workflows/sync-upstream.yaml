@@ -118,6 +118,7 @@ jobs:
             -v "$PWD/deps:/deps" \
             -v "$PWD/requirements.txt:/requirements.txt" \
             python:3.14 bash -c "
+              apt-get update && apt-get install -y cargo rustc libffi-dev libssl-dev &&
               pip install --upgrade pip wheel setuptools setuptools-rust maturin &&
               pip wheel --no-deps --wheel-dir /deps $REQS
             "
