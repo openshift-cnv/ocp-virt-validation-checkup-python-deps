@@ -55,7 +55,7 @@ jobs:
           echo "Packages for cross-platform download: $(wc -l < reqs-plain.txt)"
 
           # Download sdists for native packages (fallback for arches without wheels)
-          NATIVE_PKGS="bcrypt cffi charset-normalizer cryptography greenlet markupsafe psutil pydantic-core pynacl rpds-py ruff sqlalchemy websockets pyyaml"
+          NATIVE_PKGS="bcrypt cachebox cffi charset-normalizer cryptography greenlet markupsafe psutil pydantic-core pynacl rpds-py ruff sqlalchemy websockets pyyaml"
           for pkg in $NATIVE_PKGS; do
             ver=$(grep "^${pkg}==" reqs-plain.txt | head -1)
             [ -z "$ver" ] && continue
