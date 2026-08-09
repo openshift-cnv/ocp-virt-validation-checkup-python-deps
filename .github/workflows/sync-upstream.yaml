@@ -55,7 +55,7 @@ jobs:
           echo "Packages for cross-platform download: $(wc -l < reqs-plain.txt)"
 
           # Download sdists for native packages (fallback for arches without wheels)
-          NATIVE_PKGS="bcrypt cachebox cffi charset-normalizer cryptography greenlet markupsafe psutil pydantic-core pynacl rpds-py ruff sqlalchemy websockets pyyaml"
+          NATIVE_PKGS="bcrypt cachebox caio cffi charset-normalizer cryptography greenlet markupsafe psutil pydantic-core pynacl rpds-py ruff sqlalchemy tomli watchfiles websockets pyyaml"
           for pkg in $NATIVE_PKGS; do
             ver=$(grep "^${pkg}==" reqs-plain.txt | head -1)
             [ -z "$ver" ] && continue
@@ -107,7 +107,7 @@ jobs:
       - name: Build s390x wheels for packages without PyPI wheels
         run: |
           # Packages that need s390x wheels built (no PyPI wheels available)
-          S390X_BUILD="bcrypt cryptography psutil pynacl markupsafe sqlalchemy"
+          S390X_BUILD="bcrypt caio cryptography markupsafe psutil pynacl sqlalchemy tomli"
           REQS=""
           for pkg in $S390X_BUILD; do
             ver=$(grep -oE "^${pkg}==[0-9.]+" requirements.txt | head -1)
