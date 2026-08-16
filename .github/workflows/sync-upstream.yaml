@@ -3,17 +3,44 @@ name: Sync upstream dependencies
 on:
   schedule:
     - cron: '0 * * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to sync (leave empty for current branch)'
+        required: false
+        default: ''
 
 jobs:
+  setup-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      branches: ${{ steps.set-branches.outputs.branches }}
+    steps:
+      - name: Determine branches to sync
+        id: set-branches
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo 'branches=["main","release-4.22"]' >> $GITHUB_OUTPUT
+          elif [ -n "${{ inputs.branch }}" ]; then
+            echo 'branches=["${{ inputs.branch }}"]' >> $GITHUB_OUTPUT
+          else
+            echo 'branches=["${{ github.ref_name }}"]' >> $GITHUB_OUTPUT
+          fi
+
   sync:
+    needs: setup-matrix
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: ${{ fromJson(needs.setup-matrix.outputs.branches) }}
 
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ matrix.branch }}
           lfs: true
 
       - name: Install uv
@@ -48,16 +75,12 @@ jobs:
         run: |
           if [ -f requirements.txt ] && diff -q requirements.txt requirements-new.txt > /dev/null 2>&1; then
             echo "deps_changed=false" >> $GITHUB_OUTPUT
-            echo "Dependencies unchanged -- skipping download and QEMU build"
+            echo "Dependencies unchanged on ${{ matrix.branch }} -- skipping download and QEMU build"
             rm requirements-new.txt
           else
             echo "deps_changed=true" >> $GITHUB_OUTPUT
             mv requirements-new.txt requirements.txt
-            if [ -f requirements.txt ]; then
-              echo "Dependencies changed -- full rebuild required"
-            else
-              echo "First run -- full build required"
-            fi
+            echo "Dependencies changed on ${{ matrix.branch }} -- full rebuild required"
           fi
 
       - name: Download packages
