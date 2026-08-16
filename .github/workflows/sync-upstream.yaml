@@ -28,20 +28,38 @@ jobs:
 
       - name: Export requirements.txt from uv.lock
         working-directory: upstream/openshift-virtualization-tests
-        run: uv export --format requirements.txt --frozen --no-dev --output-file ../../requirements.txt
+        run: uv export --format requirements.txt --frozen --no-dev --output-file ../../requirements-new.txt
 
       - name: Filter and clean requirements.txt
         run: |
           # Remove Windows-only packages (no Linux distributions)
-          sed -i '/^colorama==/,/^[^ ]/{ /^colorama==/d; /^    /d; /^$/d; }' requirements.txt
-          sed -i '/^pywin32==/,/^[^ ]/{ /^pywin32==/d; /^    /d; /^$/d; }' requirements.txt
+          sed -i '/^colorama==/,/^[^ ]/{ /^colorama==/d; /^    /d; /^$/d; }' requirements-new.txt
+          sed -i '/^pywin32==/,/^[^ ]/{ /^pywin32==/d; /^    /d; /^$/d; }' requirements-new.txt
           # Remove the editable install line (project installed via .pth file)
-          sed -i '/^-e \./d' requirements.txt
+          sed -i '/^-e \./d' requirements-new.txt
           # Strip hashes (QEMU-built wheels have different hashes than PyPI)
-          grep -E '^[a-zA-Z]' requirements.txt | sed 's/ .*//' > requirements-clean.txt
-          mv requirements-clean.txt requirements.txt
+          grep -E '^[a-zA-Z]' requirements-new.txt | sed 's/ .*//' > requirements-clean.txt
+          mv requirements-clean.txt requirements-new.txt
+
+      - name: Check if dependencies changed
+        id: deps-check
+        run: |
+          if [ -f requirements.txt ] && diff -q requirements.txt requirements-new.txt > /dev/null 2>&1; then
+            echo "deps_changed=false" >> $GITHUB_OUTPUT
+            echo "Dependencies unchanged -- skipping download and QEMU build"
+            rm requirements-new.txt
+          else
+            echo "deps_changed=true" >> $GITHUB_OUTPUT
+            mv requirements-new.txt requirements.txt
+            if [ -f requirements.txt ]; then
+              echo "Dependencies changed -- full rebuild required"
+            else
+              echo "First run -- full build required"
+            fi
+          fi
 
       - name: Download packages
+        if: steps.deps-check.outputs.deps_changed == 'true'
         run: |
           rm -rf deps && mkdir -p deps
           PYTHON314=$(uv python find 3.14)
@@ -100,11 +118,13 @@ jobs:
           echo "Downloaded $(ls deps/ | wc -l) package files"
 
       - name: Set up QEMU for s390x
+        if: steps.deps-check.outputs.deps_changed == 'true'
         uses: docker/setup-qemu-action@v3
         with:
           platforms: s390x
 
       - name: Build s390x wheels for packages without PyPI wheels
+        if: steps.deps-check.outputs.deps_changed == 'true'
         run: |
           # Packages that need s390x wheels built (no PyPI wheels available)
           S390X_BUILD="bcrypt cryptography psutil pynacl markupsafe sqlalchemy"
