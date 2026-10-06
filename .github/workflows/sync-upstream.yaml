@@ -9,6 +9,11 @@ on:
         description: 'Branch to sync (leave empty for current branch)'
         required: false
         default: ''
+      force_rebuild:
+        description: 'Force full rebuild even if requirements.txt unchanged'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   setup-matrix:
@@ -73,7 +78,8 @@ jobs:
       - name: Check if dependencies changed
         id: deps-check
         run: |
-          if [ -f requirements.txt ] && diff -q requirements.txt requirements-new.txt > /dev/null 2>&1; then
+          FORCE="${{ inputs.force_rebuild }}"
+          if [ "$FORCE" != "true" ] && [ -f requirements.txt ] && diff -q requirements.txt requirements-new.txt > /dev/null 2>&1; then
             echo "deps_changed=false" >> $GITHUB_OUTPUT
             echo "Dependencies unchanged on ${{ matrix.branch }} -- skipping download and QEMU build"
             rm requirements-new.txt
