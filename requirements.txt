@@ -131,6 +131,7 @@ pyvmomi==9.1.1.0
 pywin32-ctypes==0.2.3
 pyyaml==6.0.3
 referencing==0.37.0
+remote-pdb==2.1.0
 requests==2.34.2
 requests-oauthlib==2.0.0
 requests-toolbelt==1.0.0
