@@ -2,7 +2,7 @@ name: Sync upstream dependencies
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '42 * * * *'
   workflow_dispatch:
     inputs:
       branch:
