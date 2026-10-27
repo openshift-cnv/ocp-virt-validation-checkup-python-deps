@@ -27,12 +27,13 @@ needing Hermeto pip prefetching.
 | This repo | Upstream branch |
 |-----------|----------------|
 | `release-4.22` | `cnv-4.22` |
+| `release-5.0` | `cnv-5.0` |
 | `main` | `main` |
 
 ## Contents
 
 - `upstream/openshift-virtualization-tests` -- submodule tracking upstream
-- `requirements.txt` -- exported from `uv.lock`, fully resolved with hashes
+- `requirements.txt` -- exported from `uv.lock`, fully resolved with environment markers
 - `deps/` -- downloaded wheels and sdists for x86_64, aarch64, s390x
 
 ## Manual sync
@@ -40,8 +41,10 @@ needing Hermeto pip prefetching.
 ```bash
 git submodule update --remote upstream/openshift-virtualization-tests
 cd upstream/openshift-virtualization-tests
-uv export --format requirements.txt --frozen --no-dev --output-file ../../requirements.txt
+uv export --format requirements.txt --frozen --no-dev --no-hashes --no-emit-project --output-file ../../requirements.txt
 cd ../..
+grep -E '^[A-Za-z0-9_.-]+==' requirements.txt > requirements-filtered.txt
+mv requirements-filtered.txt requirements.txt
 pip download -r requirements.txt --dest deps/ --no-deps --prefer-binary
 git add -A && git commit -m "Sync deps" && git push
 ```
