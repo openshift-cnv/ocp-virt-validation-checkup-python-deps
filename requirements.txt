@@ -28,7 +28,7 @@ deepdiff==9.0.0
 defusedxml==0.7.1
 deprecation==2.1.0
 dictdiffer==0.9.0
-dnspython==2.8.0
+dnspython==2.9.0
 docker==7.1.0
 docstring-parser==0.18.0
 docutils==0.22.4
