@@ -119,7 +119,7 @@ pytest==9.0.3
 pytest-benchmark==5.2.3
 pytest-dependency==0.6.1
 pytest-html==4.2.0
-pytest-jira==0.3.24
+pytest-jira==0.5.0
 pytest-metadata==3.1.1
 pytest-order==1.4.0
 pytest-progress==1.4.0
