@@ -163,7 +163,7 @@ typing-extensions==4.15.0
 typing-inspection==0.4.2
 typish==1.9.3
 uncalled-for==0.4.1
-urllib3==2.7.0
+urllib3==2.8.0
 uvicorn==0.46.0
 watchfiles==1.3.0
 wcwidth==0.7.0
